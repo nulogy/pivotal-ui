@@ -1,0 +1,24 @@
+FROM ubuntu:14.04
+USER root
+ENV SHELL /bin/bash
+
+RUN apt-get update
+RUN apt-get install -y vim \
+                        wget \
+                        curl \
+                        libssl-dev \
+                        libreadline-dev \
+                        zlib1g-dev \
+                        libpng-dev \
+                        checkinstall \
+                        libncursesw5-dev \
+                        libsqlite3-dev \
+                        tk-dev \
+                        libgdbm-dev \
+                        libc6-dev \
+                        libbz2-dev \
+                        build-essential \
+                        git \
+                        python2.7 \
+                        gyp \
+                        default-jdk

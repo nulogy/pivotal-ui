@@ -1,0 +1,10 @@
+FROM pivotal-ui-tools
+USER root
+ENV SHELL /bin/bash
+
+
+RUN npm install yarn --global
+COPY package.json /tmp
+WORKDIR /tmp
+RUN yarn --no-lockfile
+RUN ls -lah
