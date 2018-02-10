@@ -1,20 +1,13 @@
-import {EventEmitter} from 'events';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 
-let destinationPortals = {};
-const emitter = new EventEmitter();
-
-const createRoot = reactElement => {
-  const destination = document.createElement('div');
-  ReactDOM.findDOMNode(reactElement).appendChild(destination);
-  return destination;
-};
+let portalSources = {};
+let portalDestinations = {};
 
 export const reset = () => {
-  emitter.removeAllListeners();
-  destinationPortals = {};
+  portalSources = {};
+  portalDestinations = {};
 };
 
 export class PortalSource extends React.PureComponent {
@@ -22,39 +15,20 @@ export class PortalSource extends React.PureComponent {
     name: PropTypes.string.isRequired
   };
 
-  constructor(props, context) {
-    super(props, context);
-    this.state = {destination: null};
-  }
-
   componentDidMount() {
-    emitter.on('destination', this.setDestination);
-    this.setDestination();
-    this.componentDidUpdate();
-  }
-
-  componentDidUpdate() {
-    const {root} = this.state.destination || {};
-    if (root) ReactDOM.render(<div>{this.props.children}</div>, root);
+    const {name} = this.props;
+    portalSources[name] = this;
+    portalDestinations[name] && this.forceUpdate();
   }
 
   componentWillUnmount() {
-    emitter.removeListener('destination', this.setDestination);
-    const {root} = this.state.destination || {};
-    if(root) {
-      root.parentNode.removeChild(root);
-    }
+    delete portalSources[this.props.name];
   }
 
-  setDestination = () => {
-    const {destination} = this.state;
-    const destinationPortal = destinationPortals[this.props.name];
-    if (destination && destination.portal === destinationPortal) return;
-    this.setState({destination: destinationPortal && {portal: destinationPortal, root: createRoot(destinationPortal)}}, this.componentDidUpdate);
-  };
-
   render() {
-    return null;
+    const root = portalDestinations[this.props.name];
+    if (!root) return null;
+    return ReactDOM.createPortal(this.props.children, root);
   }
 }
 
@@ -65,20 +39,19 @@ export class PortalDestination extends React.PureComponent {
 
   componentDidMount() {
     const {name} = this.props;
-    if (name in destinationPortals) {
+    if (name in portalDestinations) {
       console.warn(`Warning: Multiple destination portals with the same name "${name}" detected.`);
     }
 
-    destinationPortals[name] = this;
-    emitter.emit('destination', this);
+    portalDestinations[name] = this.el;
+    portalSources[name] && portalSources[name].forceUpdate();
   }
 
   componentWillUnmount() {
-    delete destinationPortals[this.props.name];
-    emitter.emit('destination', this);
+    delete portalDestinations[this.props.name];
   }
 
   render() {
-    return <div/>;
+    return <div ref={el => this.el = el} />;
   }
 }

@@ -1,30 +1,29 @@
 import '../spec_helper';
 import {PortalSource, PortalDestination} from '../../../src/react/portals';
 
-
-describe('Portals', function() {
+describe('Portals', () => {
   let subject;
 
   class Potato extends React.Component {
-    constructor(props, context) {
-      super(props, context);
+    constructor(props) {
+      super(props);
       this.state = {};
     }
+
     render() {
-      var {cake} = this.state;
+      const {cake} = this.state;
       return (<div className="potato">{cake ? 'cake is a lie' : 'Potato'}</div>);
     }
   }
 
-  const container = document.createElement('div');
-
-  afterEach(function() {
-    ReactDOM.unmountComponentAtNode(container);
+  afterEach(() => {
+    ReactDOM.unmountComponentAtNode(root);
   });
 
-  describe('when there is more than one destination portal with the same name', function() {
-    it('warns', function() {
+  describe('when there is more than one destination portal with the same name', () => {
+    beforeEach(() => {
       spyOn(console, 'warn');
+
       subject = ReactDOM.render(
         <div>
           <div className="orange">
@@ -38,14 +37,16 @@ describe('Portals', function() {
               <div className="lemon"/>
             </PortalSource>
           </div>
-        </div>, container);
+        </div>, root);
+    });
 
+    it('warns', () => {
       expect(console.warn).toHaveBeenCalledWith('Warning: Multiple destination portals with the same name "chell" detected.');
     });
   });
 
-  describe('when there is more than one source portal with the same name', function() {
-    it('renders the content for both source portals in the destination portal', function() {
+  describe('when there is more than one source portal with the same name', () => {
+    beforeEach(() => {
       subject = ReactDOM.render(
         <div>
           <div className="orange">
@@ -61,22 +62,22 @@ describe('Portals', function() {
               <div className="lemon"/>
             </PortalSource>
           </div>
-        </div>, container);
+        </div>, root);
+    });
 
-      const orange = subject.getElementsByClassName('orange')[0];
-      expect(orange.getElementsByClassName('potato')).toHaveLength(1);
-      expect(orange.getElementsByClassName('lemon')).toHaveLength(1);
+    it('renders the content for both source portals in the destination portal', () => {
+      expect('.orange:eq(0) .potato').toHaveLength(1);
+      expect('.orange:eq(0) .lemon').toHaveLength(1);
 
-      const blue = subject.getElementsByClassName('blue')[0];
-      expect(blue.getElementsByClassName('potato')).toHaveLength(0);
-      expect(blue.getElementsByClassName('lemon')).toHaveLength(0);
+      expect('.blue:eq(0) .potato').toHaveLength(0);
+      expect('.blue:eq(0) .lemon').toHaveLength(0);
     });
   });
 
-  describe('when the portals are rendered source first then destination', function() {
+  describe('when the portals are rendered source first then destination', () => {
     class Context extends React.Component {
-      constructor(props, context) {
-        super(props, context);
+      constructor(props) {
+        super(props);
         this.state = {visible: true};
       }
 
@@ -96,45 +97,43 @@ describe('Portals', function() {
       }
     }
 
-    it('does not render the source portal content', function() {
-      subject = ReactDOM.render(<Context/>, container);
-      const blue = ReactTestUtils.findRenderedDOMComponentWithClass(subject, 'blue');
-
-      expect(blue).not.toHaveText('Potato');
+    beforeEach(() => {
+      subject = ReactDOM.render(<Context/>, root);
     });
 
-    it('renders the source portal into the destination portal', function() {
-      subject = ReactDOM.render(<Context/>, container);
-      const orange = ReactTestUtils.findRenderedDOMComponentWithClass(subject, 'orange');
-
-      expect(orange).toHaveText('Potato');
+    it('does not render the source portal content', () => {
+      expect('.blue').not.toHaveText('Potato');
     });
 
-    describe('when the blue contents change', function() {
-      it('updates in the destination portal', function() {
-        subject = ReactDOM.render(<Context/>, container);
-        const potato = subject.refs.potato;
-        potato.setState({cake: true});
-        const orange = ReactTestUtils.findRenderedDOMComponentWithClass(subject, 'orange');
+    it('renders the source portal into the destination portal', () => {
+      expect('.orange').toHaveText('Potato');
+    });
 
-        expect(orange).not.toHaveText('Potato');
-        expect(orange).toHaveText('cake is a lie');
+    describe('when the blue contents change', () => {
+      beforeEach(() => {
+        subject.refs.potato.setState({cake: true});
+      });
+
+      it('updates in the destination portal', () => {
+        expect('.orange').not.toHaveText('Potato');
+        expect('.orange').toHaveText('cake is a lie');
       });
     });
 
-    describe('when the blue contents unmount', function() {
-      it('cleans up the div in the destination portal', function() {
-        subject = ReactDOM.render(<Context/>, container);
+    describe('when the blue contents unmount', () => {
+      beforeEach(() => {
         subject.setState({visible: false});
-        const orange = ReactTestUtils.findRenderedDOMComponentWithClass(subject, 'orange');
+      });
 
-        expect(orange.getElementsByTagName('div')).toHaveLength(1);
+      it('cleans up the div in the destination portal', () => {
+        expect('.orange div').toHaveLength(1);
       });
     });
   });
 
-  describe('when the portals are rendered destination first then source', function() {
-    const renderComponent = () => ReactDOM.render(
+  describe('when the portals are rendered destination first then source', () => {
+    beforeEach(() => {
+      subject = ReactDOM.render(
         <div>
           <div className="orange">
             <PortalDestination name="chell"/>
@@ -144,26 +143,20 @@ describe('Portals', function() {
               <Potato/>
             </PortalSource>
           </div>
-        </div>, container);
-
-
-    it('does not render the source portal content', function() {
-      subject = renderComponent();
-      const blue = subject.getElementsByClassName('blue')[0];
-
-      expect(blue).not.toHaveText('Potato');
+        </div>, root);
     });
 
-    it('renders the source portal into the destination portal', function() {
-      subject = renderComponent();
-      const orange = subject.getElementsByClassName('orange')[0];
+    it('does not render the source portal content', () => {
+      expect('.blue:eq(0)').not.toHaveText('Potato');
+    });
 
-      expect(orange).toHaveText('Potato');
+    it('renders the source portal into the destination portal', () => {
+      expect('.orange:eq(0)').toHaveText('Potato');
     });
   });
 
-  describe('with multiple portal pairs', function() {
-    it('renders the source portal contents in the correct destination portals', function() {
+  describe('with multiple portal pairs', () => {
+    beforeEach(() => {
       subject = ReactDOM.render(
         <div>
           <div className="orange-chell">
@@ -182,13 +175,12 @@ describe('Portals', function() {
               <div>Okay don't panic! Alright? Stop panicking! I can still stop this. Ahh. Oh there's a password. It's fine. I'll just hack it. Not a problem... umm...</div>
             </PortalSource>
           </div>
-        </div>, container);
+        </div>, root);
+    });
 
-      const orangeChell = subject.getElementsByClassName('orange-chell')[0];
-      expect(orangeChell).toHaveText('Potato');
-
-      const orangeWheatley = subject.getElementsByClassName('orange-wheatley')[0];
-      expect(orangeWheatley).toContainText('Stop panicking!');
+    it('renders the source portal contents in the correct destination portals', () => {
+      expect('.orange-chell:eq(0)').toHaveText('Potato');
+      expect('.orange-wheatley:eq(0)').toContainText('Stop panicking!');
     });
   });
 
